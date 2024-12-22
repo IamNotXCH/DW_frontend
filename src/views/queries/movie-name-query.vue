@@ -83,7 +83,8 @@ export default {
           subtext: '不同数据库的查询响应时间对比'
         }
       },
-      BASE_URL: 'http://localhost:8848'
+      BASE_URL: 'http://localhost:8848',
+      MYSQL_BASE_URL:'http://localhost:3001/api'
     }
   },
   methods: {
@@ -130,6 +131,27 @@ export default {
           this.$message.error('查询失败，请稍后重试')
           this.loading = false
         })
+      
+
+      axios.get(`${this.MYSQL_BASE_URL}/movies/versions`, {
+        params: { 
+          name: this.form.movieName
+        }
+      })
+      .then(response => {
+        console.log('API 返回的查询时间:', response.data)
+        console.log('API返回的查询时间',response.data.queryTime)
+        
+        this.chartData.rows.push(
+            { '数据库': 'MYSQL', '查询时间': response.data.queryTime }
+          )
+        
+      })
+      .catch(error => {
+        console.error('请求新接口出错:', error)
+        this.$message.error('获取速度对比数据失败')
+      })
+      
     }
   }
 }

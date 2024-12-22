@@ -17,11 +17,11 @@
           </el-form-item>
         </el-form>
       </el-col>
-      
+
       <el-col :span="1">
         <el-divider direction="vertical" />
       </el-col>
-      
+
       <el-col :span="10">
         <el-tabs v-model="activeName">
           <el-tab-pane label="查询结果" name="first">
@@ -54,7 +54,7 @@
               </el-col>
             </el-row>
           </el-tab-pane>
-          
+
           <el-tab-pane label="速度对比" name="second" :disabled="!hasResult">
             <ve-histogram
               :data="chartData"
@@ -101,7 +101,8 @@ export default {
           subtext: '不同数据库的查询响应时间对比'
         }
       },
-      BASE_URL: 'http://localhost:8848'
+      BASE_URL: 'http://localhost:8848',
+      MYSQL_BASE_URL:'http://localhost:3001/api'
     }
   },
   methods: {
@@ -135,16 +136,16 @@ export default {
                 grade: movie.MovieGrade || '',
                 releaseTime: movie.MovieReleaseTime || ''
               }))
-            
+
             this.totalMovies = movies.length
             this.queryTime = response.data.time || 0
-            
+
             if (response.data.time) {
               this.chartData.rows = [
                 { '数据库': 'Neo4j', '查询时间': response.data.time }
               ]
             }
-            
+
             this.$message.success('查询成功')
           } else {
             this.$message.error('返回数据格式不正确')
@@ -160,6 +161,26 @@ export default {
           this.queryTime = 0
           this.chartData.rows = []
         })
+
+        axios.get(`${this.MYSQL_BASE_URL}/movies/high-grade`,{
+            params:{
+              score:this.queryForm.grade,
+              limit: 1000000
+            }
+        })
+        .then(response => {
+          console.log('API 返回的查询时间:', response.data)
+          console.log('API返回的查询时间',response.data.queryTime)
+
+          this.chartData.rows.push(
+              { '数据库': 'MYSQL', '查询时间': response.data.queryTime }
+            )
+
+        })
+        .catch(error => {
+          console.error('请求新接口出错:', error)
+          this.$message.error('获取速度对比数据失败')
+        })
     }
   }
 }
@@ -169,4 +190,4 @@ export default {
 .el-divider--vertical {
   height: 75vh;
 }
-</style> 
+</style>

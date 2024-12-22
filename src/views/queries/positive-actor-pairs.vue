@@ -14,17 +14,17 @@
                 clearable
               />
             </el-form-item>
-  
+
             <el-form-item>
               <el-button type="primary" @click="fetchData">查询</el-button>
             </el-form-item>
           </el-form>
         </el-col>
-        
+
         <el-col :span="1">
           <el-divider direction="vertical" />
         </el-col>
-        
+
         <el-col :span="10">
           <el-tabs v-model="activeName">
             <el-tab-pane label="查询结果" name="first">
@@ -58,7 +58,7 @@
                 </el-col>
               </el-row>
             </el-tab-pane>
-            
+
             <el-tab-pane label="速度对比" name="second" :disabled="!hasResult">
               <ve-histogram
                 :data="chartData"
@@ -72,10 +72,10 @@
       </el-row>
     </div>
   </template>
-  
+
   <script>
   import axios from 'axios'
-  
+
   export default {
     name: 'PositiveActorPairs',
     data() {
@@ -104,7 +104,8 @@
             text: '时间查询性能对比',
             subtext: '不同数据库的查询响应时间对比'
           }
-        }
+        },
+        MYSQL_BASE_URL:'http://localhost:3001/api'
       }
     },
     methods: {
@@ -113,10 +114,10 @@
           this.$message.warning('请输入电影类型')
           return
         }
-  
+
         this.loading = true
         this.hasResult = true
-  
+
         axios.get(`http://localhost:8848/neo4j/movie/movies-with-positive-reviews-by-actor-pair`, {
           params: {
             category: this.queryForm.category
@@ -130,23 +131,23 @@
                 this.loading = false
                 return
               }
-  
+
               // 处理数据
               this.tableData = pairs.map(pair => ({
                 actor1: pair.ActorPair[0],
                 actor2: pair.ActorPair[1],
                 positiveCount: pair.PositiveMovieCount
               }))
-              
+
               this.totalPairs = pairs.length
               this.queryTime = response.data.executionTime || 0
-              
+
               if (response.data.executionTime) {
                 this.chartData.rows = [
                   { '数据库': 'Neo4j', '查询时间': response.data.executionTime }
                 ]
               }
-              
+
               this.$message.success('查询成功')
             } else {
               this.$message.error('返回数据格式不正确')
@@ -162,13 +163,32 @@
             this.queryTime = 0
             this.chartData.rows = []
           })
+
+        axios.get(`${this.MYSQL_BASE_URL}/actors/${this.queryForm.category}/positive-reviews`, {
+        params: {
+          limit:100
+        }
+      })
+        .then(response => {
+          console.log('API 返回的查询时间:', response.data)
+          console.log('API返回的查询时间',response.data.queryTime)
+
+          this.chartData.rows.push(
+              { '数据库': 'MYSQL', '查询时间': response.data.queryTime }
+            )
+
+        })
+        .catch(error => {
+          console.error('请求新接口出错:', error)
+          this.$message.error('获取速度对比数据失败')
+        })
       }
     }
   }
   </script>
-  
+
   <style scoped>
   .el-divider--vertical {
     height: 75vh;
   }
-  </style> 
+  </style>

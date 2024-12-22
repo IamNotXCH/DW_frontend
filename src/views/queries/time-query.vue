@@ -13,8 +13,8 @@
           </el-form-item>
 
           <el-form-item label="月份">
-            <el-select 
-              v-model="form.month" 
+            <el-select
+              v-model="form.month"
               placeholder="选择月份"
               clearable
               style="width: 50%;"
@@ -29,8 +29,8 @@
           </el-form-item>
 
           <el-form-item label="日期">
-            <el-select 
-              v-model="form.day" 
+            <el-select
+              v-model="form.day"
               placeholder="选择日期"
               clearable
               style="width: 50%;"
@@ -45,8 +45,8 @@
           </el-form-item>
 
           <el-form-item label="季度">
-            <el-select 
-              v-model="form.quarter" 
+            <el-select
+              v-model="form.quarter"
               placeholder="选择季度"
               clearable
               style="width: 50%;"
@@ -57,18 +57,18 @@
               <el-option label="第四季度" value="4" />
             </el-select>
           </el-form-item>
-          
+
           <el-form-item>
             <el-button type="primary" @click="searchByTime">查询</el-button>
             <el-button @click="resetForm">重置</el-button>
           </el-form-item>
         </el-form>
       </el-col>
-      
+
       <el-col :span="1">
         <el-divider direction="vertical" />
       </el-col>
-      
+
       <el-col :span="10">
         <el-tabs v-model="activeName">
           <el-tab-pane label="查询结果" name="first">
@@ -79,7 +79,7 @@
               <el-table-column prop="time" label="上映时间" />
             </el-table>
           </el-tab-pane>
-          
+
           <el-tab-pane label="速度对比" name="second" :disabled="!hasResult">
             <ve-histogram
               :data="chartData"
@@ -95,6 +95,8 @@
 </template>
 
 <script>
+import axios from "axios";
+
 export default {
   name: 'TimeQuery',
   data() {
@@ -135,7 +137,8 @@ export default {
         1: 31, 2: 28, 3: 31, 4: 30, 5: 31, 6: 30,
         7: 31, 8: 31, 9: 30, 10: 31, 11: 30, 12: 31
       },
-      BASE_URL: 'http://localhost:8848'
+      BASE_URL: 'http://localhost:8848',
+      MYSQL_BASE_URL:'http://localhost:3001/api'
     }
   },
   methods: {
@@ -149,18 +152,18 @@ export default {
         this.$message.warning('不能同时选择月日和季度')
         return
       }
-      
+
       this.loading = true
       this.hasResult = true
-      
+
       const year = this.form.year.getFullYear()
-      
+
       // 如果选择了季度，使用季度查询接口
       if (this.form.quarter !== null) {
         this.fetchNeo4jQuarterData(year, this.form.quarter)
         return
       }
-      
+
       // 构建月份查询参数
       let yearMonth = `${year}`
       if (this.form.month) {
@@ -169,14 +172,14 @@ export default {
       if(this.form.day){
         yearMonth += `/${this.form.day}`
       }
-      
+
       // 发送请求到Neo4j
       this.fetchNeo4jData(yearMonth)
     },
-    
+
     fetchNeo4jData(yearMonth) {
       const axios = require('axios')
-      
+
       axios.get(`${this.BASE_URL}/neo4j/movie/movie-count-by-month`, {
         params: { yearMonth }
       })
@@ -185,13 +188,13 @@ export default {
           if (response.data && response.data.movies) {
             this.movieData = response.data.movies.map(movie => ({
               title: movie.MovieName,
-              time: movie.MovieReleaseTime ? 
-                `${movie.MovieReleaseTime.replace(/(\d+)\/(\d+)\/(\d+)/, '$1年$2月$3日')}` : 
+              time: movie.MovieReleaseTime ?
+                `${movie.MovieReleaseTime.replace(/(\d+)\/(\d+)\/(\d+)/, '$1年$2月$3日')}` :
                 this.formatTime(this.form.year.getFullYear(), this.form.month, this.form.day),
               score: movie.MovieGrade
             }))
             this.movieNumber = response.data.MovieCount
-            
+
             if (response.data.time) {
               this.chartData.rows = [
                 { '数据库': 'Neo4j', '查询时间': response.data.time }
@@ -205,13 +208,30 @@ export default {
           this.$message.error('查询失败，请稍后重试')
           this.loading = false
         })
+
+
+
+        axios.get(`${this.MYSQL_BASE_URL}/movies/${this.form.year.getFullYear()}/${this.form.month}`)
+          .then(response => {
+            console.log('API 返回的查询时间:', response.data)
+            console.log('API返回的查询时间',response.data.queryTime)
+
+            this.chartData.rows.push(
+                { '数据库': 'MYSQL', '查询时间': response.data.queryTime }
+              )
+
+          })
+          .catch(error => {
+            console.error('请求新接口出错:', error)
+            this.$message.error('获取速度对比数据失败')
+          })
     },
-    
+
     fetchNeo4jQuarterData(year, quarter) {
       const axios = require('axios')
-      
+
       axios.get(`${this.BASE_URL}/neo4j/movie/movie-details-by-quarter`, {
-        params: { 
+        params: {
           year: year,
           quarter: quarter
         }
@@ -221,13 +241,13 @@ export default {
           if (response.data && response.data.movies) {
             this.movieData = response.data.movies.map(movie => ({
               title: movie.MovieName,
-              time: movie.MovieReleaseTime ? 
-                `${movie.MovieReleaseTime.replace(/(\d+)\/(\d+)\/(\d+)/, '$1年$2月$3日')}` : 
+              time: movie.MovieReleaseTime ?
+                `${movie.MovieReleaseTime.replace(/(\d+)\/(\d+)\/(\d+)/, '$1年$2月$3日')}` :
                 `${year}年第${quarter}季度`,
               score: movie.MovieGrade
             }))
             this.movieNumber = response.data.MovieCount
-            
+
             if (response.data.time) {
               this.chartData.rows = [
                 { '数据库': 'Neo4j', '查询时间': response.data.time }
@@ -241,8 +261,25 @@ export default {
           this.$message.error('查询失败，请稍后重试')
           this.loading = false
         })
+
+      axios.get(`${this.MYSQL_BASE_URL}/movies/${year}/season/${quarter}`)
+          .then(response => {
+            console.log('API 返回的查询时间:', response.data)
+            console.log('API返回的查询时间',response.data.queryTime)
+
+            this.chartData.rows.push(
+                { '数据库': 'MYSQL', '查询时间': response.data.queryTime }
+              )
+
+          })
+          .catch(error => {
+            console.error('请求新接口出错:', error)
+            this.$message.error('获取速度对比数据失败')
+          })
+
+
     },
-    
+
     formatTime(year, month, day) {
       let timeStr = `${year}年`
       if (month) {
@@ -253,7 +290,7 @@ export default {
       }
       return timeStr
     },
-    
+
     resetForm() {
       this.$refs.form.resetFields()
       this.movieData = []
@@ -269,14 +306,14 @@ export default {
         this.daysInMonth = 31
         return
       }
-      
+
       if (this.form.month === 2 && this.form.year) {
         // 处理2月份闰年情况
         this.daysInMonth = this.isLeapYear(this.form.year.getFullYear()) ? 29 : 28
       } else {
         this.daysInMonth = this.monthDays[this.form.month]
       }
-      
+
       // 如果当前选择的日期超过了当月最大天数，重置日期
       if (this.form.day > this.daysInMonth) {
         this.form.day = null
@@ -286,7 +323,7 @@ export default {
       const axios = require('axios')
       this.loading = true
       this.hasResult = true
-      
+
       axios.get(`${this.BASE_URL}/neo4j/movie/movie-count-by-year`)
         .then(response => {
           console.log('Neo4j year response:', response.data)
@@ -297,10 +334,10 @@ export default {
               time: `${item.year}年`,
               score: item.movieCount // 使用电影数量代替评分
             }))
-            
+
             // 计算总电影数量
             this.movieNumber = response.data.movieCountByYear.reduce((sum, item) => sum + item.movieCount, 0)
-            
+
             // 更新图表数据
             if (response.data.time) {
               this.chartData.rows = [
@@ -315,6 +352,21 @@ export default {
           this.$message.error('查询失败，请稍后重试')
           this.loading = false
         })
+
+      axios.get(`${this.MYSQL_BASE_URL}/movies/time`)
+          .then(response => {
+            console.log('API 返回的查询时间:', response.data)
+            console.log('API返回的查询时间',response.data.queryTime)
+
+            this.chartData.rows.push(
+                { '数据库': 'MYSQL', '查询时间': response.data.queryTime }
+              )
+
+          })
+          .catch(error => {
+            console.error('请求新接口出错:', error)
+            this.$message.error('获取速度对比数据失败')
+          })
     }
   },
   watch: {
@@ -348,4 +400,4 @@ export default {
 .el-divider--vertical {
   height: 75vh;
 }
-</style> 
+</style>

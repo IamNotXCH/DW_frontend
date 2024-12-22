@@ -14,11 +14,11 @@
             <el-button type="primary" @click="searchCoActors" :loading="loading">查询</el-button>
           </div>
         </el-col>
-        
+
         <el-col :span="1">
           <el-divider direction="vertical" />
         </el-col>
-        
+
         <el-col :span="10">
           <el-tabs v-model="activeName">
             <el-tab-pane label="查询结果" name="first">
@@ -36,7 +36,7 @@
                 <el-table-column prop="count" label="合作次数" width="100" sortable />
               </el-table>
             </el-tab-pane>
-            
+
             <el-tab-pane label="速度对比" name="second" :disabled="!hasResult">
               <ve-histogram
                 :data="chartData"
@@ -50,7 +50,7 @@
       </el-row>
     </div>
   </template>
-  
+
   <script>
   import axios from 'axios'
 
@@ -79,14 +79,15 @@
             subtext: '不同数据库的查询响应时间对比'
           }
         },
-        BASE_URL: 'http://localhost:8848'
+        BASE_URL: 'http://localhost:8848',
+        MYSQL_BASE_URL:'http://localhost:3001/api'
       }
     },
     methods: {
       searchCoActors() {
         this.loading = true
         this.hasResult = true
-  
+
         axios.get(`${this.BASE_URL}/director-actor-collaborations`)
           .then(response => {
             console.log('Neo4j response:', response.data)
@@ -97,10 +98,10 @@
                 actorName: pair.actorName,
                 count: pair.movieCount
               }))
-              
-             
+
+
               this.pairNumber = response.data.collaborations.length
-              
+
               if (response.data.time) {
                 this.chartData.rows = [
                   { '数据库': 'Neo4j', '查询时间': response.data.time }
@@ -116,11 +117,30 @@
             this.$message.error('查询失败，请稍后重试')
             this.loading = false
           })
+
+        axios.get(`${this.MYSQL_BASE_URL}/directors/actors/collaboration`, {
+          params: {
+            limit:1000000
+          }
+        })
+        .then(response => {
+          console.log('API 返回的查询时间:', response.data)
+          console.log('API返回的查询时间',response.data.queryTime)
+
+          this.chartData.rows.push(
+              { '数据库': 'MYSQL', '查询时间': response.data.queryTime }
+            )
+
+        })
+        .catch(error => {
+          console.error('请求新接口出错:', error)
+          this.$message.error('获取速度对比数据失败')
+        })
       }
     }
   }
   </script>
-  
+
   <style scoped>
   .el-divider--vertical {
     height: 75vh;
