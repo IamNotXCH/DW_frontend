@@ -84,7 +84,9 @@ export default {
         }
       },
       BASE_URL: 'http://localhost:8848',
-      MYSQL_BASE_URL:'http://localhost:3001/api'
+      MYSQL_BASE_URL:'http://localhost:3001/api',
+      neo4jTime: 0,
+      mysqlTime: 0
     }
   },
   methods: {
@@ -113,11 +115,8 @@ export default {
             }))
             this.movieNumber = response.data.movieCount
 
-            if (response.data.time) {
-              this.chartData.rows = [
-                { '数据库': 'Neo4j', '查询时间': response.data.time }
-              ]
-            }
+            this.neo4jTime = response.data.time || 0
+            this.updateChartData()
           } else {
             this.$message.error('查询失败')
           }
@@ -131,18 +130,35 @@ export default {
 
         axios.get(`${this.MYSQL_BASE_URL}/movies/director/${this.form.directorName}`)
         .then(response => {
-          console.log('API 返回的查询时间:', response.data)
-          console.log('API返回的查询时间',response.data.queryTime)
-
-          this.chartData.rows.push(
-              { '数据库': 'MYSQL', '查询时间': response.data.queryTime }
-            )
-
+          console.log('MySQL response:', response.data)
+          this.mysqlTime = parseInt(response.data.queryTime.replace('ms', '')) || 0
+          console.log('MySQL 时间已保存:', this.mysqlTime)
+          this.updateChartData()
         })
         .catch(error => {
           console.error('请求新接口出错:', error)
           this.$message.error('获取速度对比数据失败')
         })
+    },
+
+    updateChartData() {
+      const neo4jTimeNum = Number(this.neo4jTime)
+      const mysqlTimeNum = Number(this.mysqlTime)
+      
+      console.log('更新图表数据:', {
+        neo4jTime: neo4jTimeNum,
+        mysqlTime: mysqlTimeNum
+      })
+
+      this.chartData = {
+        columns: ['数据库', '查询时间'],
+        rows: [
+          { '数据库': 'Neo4j', '查询时间': neo4jTimeNum },
+          { '数据库': 'MYSQL', '查询时间': mysqlTimeNum }
+        ]
+      }
+
+      console.log('图表数据已更新:', this.chartData)
     }
   }
 }

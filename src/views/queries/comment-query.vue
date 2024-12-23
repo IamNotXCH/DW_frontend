@@ -102,7 +102,9 @@ export default {
         }
       },
       BASE_URL: 'http://localhost:8848',
-      MYSQL_BASE_URL:'http://localhost:3001/api'
+      MYSQL_BASE_URL:'http://localhost:3001/api',
+      mysqlTime: 0,
+      neo4jTime: 0
     }
   },
   methods: {
@@ -139,12 +141,8 @@ export default {
 
             this.totalMovies = movies.length
             this.queryTime = response.data.time || 0
-
-            if (response.data.time) {
-              this.chartData.rows = [
-                { '数据库': 'Neo4j', '查询时间': response.data.time }
-              ]
-            }
+            this.neo4jTime = this.queryTime
+            this.updateChartData()
 
             this.$message.success('查询成功')
           } else {
@@ -165,22 +163,26 @@ export default {
         axios.get(`${this.MYSQL_BASE_URL}/movies/high-grade`,{
             params:{
               score:this.queryForm.grade,
-              limit: 1000000
+              limit: 10000
             }
         })
         .then(response => {
           console.log('API 返回的查询时间:', response.data)
           console.log('API返回的查询时间',response.data.queryTime)
-
-          this.chartData.rows.push(
-              { '数据库': 'MYSQL', '查询时间': response.data.queryTime }
-            )
+          this.mysqlTime = parseInt(response.data.queryTime.replace('ms', '')) || 0
+          this.updateChartData()
 
         })
         .catch(error => {
           console.error('请求新接口出错:', error)
           this.$message.error('获取速度对比数据失败')
         })
+    },
+    updateChartData() {
+      this.chartData.rows = [
+        { '数据库': 'Neo4j', '查询时间': this.neo4jTime },
+        { '数据库': 'MYSQL', '查询时间': this.mysqlTime }
+      ]
     }
   }
 }

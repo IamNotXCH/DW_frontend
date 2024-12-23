@@ -43,40 +43,7 @@ export const constantRoutes = [
     hidden: true
   },
 
-  {
-    path: '/',
-    component: Layout,
-    redirect: '/dashboard',
-    children: [{
-      path: 'dashboard',
-      name: 'Dashboard',
-      component: () => import('@/views/dashboard/index'),
-      meta: { title: '数据存储与管理', icon: 'dashboard' }
-    }]
-  },
 
-
-  {
-    path: '/example',
-    component: Layout,
-    redirect: '/example/table',
-    name: 'Example',
-    meta: { title: '数据应用', icon: 'table' },
-    children: [
-      {
-        path: 'table',
-        name: 'Table',
-        component: () => import('@/views/table/index'),
-        meta: { title: '电影查询', icon: 'movie' }
-      },
-      {
-        path: 'tree',
-        name: 'Tree',
-        component: () => import('@/views/tree/index'),
-        meta: { title: '关系查询', icon: 'relation' }
-      }
-    ]
-  },
   
   {
     path: '/queries',
@@ -293,7 +260,7 @@ export const constantRoutes = [
     component: Layout,
     children: [
       {
-        path: 'https://github.com/Shotray/DataWarehouse',
+        path: 'https://github.com/IamNotXCH/DW_Final',
         meta: { title: 'Github仓库', icon: 'link' }
       }
     ]

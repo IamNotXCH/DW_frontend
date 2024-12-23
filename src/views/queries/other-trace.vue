@@ -36,16 +36,17 @@
       return {
         loading: false,
         hasResult: false,
-        count: 0
+        count: 0,
+        MYSQL_BASE_URL: 'http://localhost:3001/api'
       }
     },
     methods: {
       fetchData() {
         this.loading = true
-        axios.get('http://localhost:8848/neo4j/movie/non-movie-count')
+        axios.get(`${this.MYSQL_BASE_URL}/dropProductCount`)
           .then(response => {
-            if (response.data) {
-              this.count = response.data.count || 0
+            if (response.data && response.data.dropProductCount) {
+              this.count = response.data.dropProductCount
               this.hasResult = true
               this.$message.success('查询成功')
             } else {

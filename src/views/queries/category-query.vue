@@ -92,7 +92,9 @@ export default {
         }
       },
       BASE_URL: 'http://localhost:8848',
-      MYSQL_BASE_URL:'http://localhost:3001/api'
+      MYSQL_BASE_URL:'http://localhost:3001/api',
+      mysqlTime: 0,
+      neo4jTime: 0
     }
   },
   methods: {
@@ -113,22 +115,15 @@ export default {
       })
         .then(response => {
           if (response.data) {
-            this.tableData = response.data.movies.map(movieName => ({
-              title: movieName
+            this.tableData = response.data.movies.map(movie => ({
+              title: movie.MovieName
             }))
-
             this.totalMovies = response.data.MovieCount || 0
-
-            this.queryTime = response.data.time || 0
-
+            this.neo4jTime = response.data.time
+            this.updateChartData()
             this.$message.success('查询成功')
           } else {
             this.$message.error('返回数据格式不正确')
-          }
-          if (response.data.time) {
-              this.chartData.rows = [
-                { '数据库': 'Neo4j', '查询时间': response.data.time }
-              ]
           }
           this.loading = false
         })
@@ -143,16 +138,22 @@ export default {
         .then(response => {
           console.log('API 返回的查询时间:', response.data)
           console.log('API返回的查询时间',response.data.queryTime)
-
-          this.chartData.rows.push(
-              { '数据库': 'MYSQL', '查询时间': response.data.queryTime }
-            )
-
+          this.mysqlTime = parseInt(response.data.queryTime.replace('ms', '')) || 0
+          this.updateChartData()
+          
         })
         .catch(error => {
           console.error('请求新接口出错:', error)
           this.$message.error('获取速度对比数据失败')
         })
+    },
+    updateChartData() {
+      const neo4jTimeNum = Number(this.neo4jTime)
+      const mysqlTimeNum = Number(this.mysqlTime)
+      this.chartData.rows = [
+        { '数据库': 'Neo4j', '查询时间': neo4jTimeNum },
+        { '数据库': 'MYSQL', '查询时间': mysqlTimeNum }
+      ] 
     }
   }
 }

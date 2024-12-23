@@ -100,8 +100,9 @@
             subtext: '不同数据库的查询响应时间对比'
           }
         },
-        MYSQL_BASE_URL:'http://localhost:3001/api'
-
+        MYSQL_BASE_URL:'http://localhost:3001/api',
+        mysqlTime: 0,
+        neo4jTime: 0
       }
     },
     methods: {
@@ -137,11 +138,8 @@
               this.totalPairs = pairs.length
               this.queryTime = response.data.time || 0
 
-              if (response.data.time) {
-                this.chartData.rows = [
-                  { '数据库': 'Neo4j', '查询时间': response.data.time }
-                ]
-              }
+              this.neo4jTime = response.data.time
+              this.updateChartData()
 
               this.$message.success('查询成功')
             } else {
@@ -168,16 +166,22 @@
           .then(response => {
           console.log('API 返回的查询时间:', response.data)
           console.log('API返回的查询时间',response.data.queryTime)
-
-          this.chartData.rows.push(
-              { '数据库': 'MYSQL', '查询时间': response.data.queryTime }
-            )
+          this.mysqlTime = parseInt(response.data.queryTime.replace('ms', '')) || 0
+          this.updateChartData()
 
         })
           .catch(error => {
           console.error('请求新接口出错:', error)
           this.$message.error('获取速度对比数据失败')
         })
+      },
+      updateChartData() {
+        const neo4jTimeNum = Number(this.neo4jTime)
+        const mysqlTimeNum = Number(this.mysqlTime)
+        this.chartData.rows = [
+          { '数据库': 'Neo4j', '查询时间': neo4jTimeNum },
+          { '数据库': 'MYSQL', '查询时间': mysqlTimeNum }
+        ] 
       }
     }
   }
