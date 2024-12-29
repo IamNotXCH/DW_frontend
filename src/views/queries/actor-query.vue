@@ -87,7 +87,8 @@ export default {
       BASE_URL: 'http://localhost:8848',
       MYSQL_BASE_URL:'http://localhost:3001/api',
       mysqlTime: 0,
-      neo4jTime: 0
+      neo4jTime: 0,
+      hiveTime: 0
     }
   },
   methods: {
@@ -117,6 +118,7 @@ export default {
             this.movieNumber = response.data.MovieCount
             this.actorName = response.data.ActorName
             this.neo4jTime = response.data.time
+            this.updateChartData()
           } else {
             this.$message.error('查询失败')
           }
@@ -143,25 +145,39 @@ export default {
           console.error('请求新接口出错:', error)
           this.$message.error('获取速度对比数据失败')
         })
+
+      axios.get(`http://106.15.36.155:8080/api/actors/movieCount`, {
+        params: { 
+          actorName: this.form.actorName
+        }
+      })
+        .then(response => {
+          if (response.data && response.data.queryTimeMillis) {
+            this.hiveTime = response.data.queryTimeMillis
+            this.updateChartData()
+          }
+        })
+        .catch(error => {
+          console.error('Hive请求出错:', error)
+          this.$message.error('获取Hive查询时间失败')
+        })
     },
     updateChartData() {
       const neo4jTimeNum = Number(this.neo4jTime)
       const mysqlTimeNum = Number(this.mysqlTime)
+      const hiveTimeNum = Number(this.hiveTime)
       
       console.log('更新图表数据:', {
         neo4jTime: neo4jTimeNum,
-        mysqlTime: mysqlTimeNum
+        mysqlTime: mysqlTimeNum,
+        hiveTime: hiveTimeNum
       })
 
-      this.chartData = {
-        columns: ['数据库', '查询时间'],
-        rows: [
-          { '数据库': 'Neo4j', '查询时间': neo4jTimeNum },
-          { '数据库': 'MYSQL', '查询时间': mysqlTimeNum }
-        ]
-      }
-
-      console.log('图表数据已更新:', this.chartData)
+      this.chartData.rows = [
+        { '数据库': 'Neo4j', '查询时间': neo4jTimeNum },
+        { '数据库': 'MySQL', '查询时间': mysqlTimeNum },
+        { '数据库': 'Hive', '查询时间': hiveTimeNum }
+      ]
     }
   }
 }

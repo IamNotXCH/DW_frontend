@@ -81,7 +81,8 @@
         },
         MYSQL_BASE_URL:'http://localhost:3001/api',
         mysqlTime: 0,
-        neo4jTime: 0
+        neo4jTime: 0,
+        hiveTime: 0
       }
     },
     methods: {
@@ -133,11 +134,35 @@
             this.totalMovies = 0
             this.chartData.rows = []
           })
+
+        // 添加 Hive 接口调用
+        axios.get(`http://106.15.36.155:8080/api/review/positiveReviewedMovies`)
+          .then(response => {
+            if (response.data && response.data.queryTimeMillis) {
+              this.hiveTime = response.data.queryTimeMillis
+              this.updateChartData()
+            }
+          })
+          .catch(error => {
+            console.error('Hive请求出错:', error)
+            this.$message.error('获取Hive查询时间失败')
+          })
       },
       updateChartData() {
+        const neo4jTimeNum = Number(this.neo4jTime)
+        const mysqlTimeNum = Number(this.mysqlTime)
+        const hiveTimeNum = Number(this.hiveTime)
+        
+        console.log('更新图表数据:', {
+          neo4jTime: neo4jTimeNum,
+          mysqlTime: mysqlTimeNum,
+          hiveTime: hiveTimeNum
+        })
+
         this.chartData.rows = [
-          { '数据库': 'Neo4j', '查询时间': this.neo4jTime },
-          { '数据库': 'MYSQL', '查询时间': this.mysqlTime }
+          { '数据库': 'Neo4j', '查询时间': neo4jTimeNum },
+          { '数据库': 'MySQL', '查询时间': mysqlTimeNum },
+          { '数据库': 'Hive', '查询时间': hiveTimeNum }
         ]
       }
     },

@@ -119,5 +119,11 @@ module.exports = {
           config.optimization.runtimeChunk('single')
         }
       )
+
+    config.module
+      .rule('md')
+      .test(/\.md$/)
+      .use('raw-loader')
+      .loader('raw-loader')
   }
 }

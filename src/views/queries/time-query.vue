@@ -142,7 +142,7 @@ export default {
       mysqlTime: 0,
       neo4jTime: 0,
       HIVE_BASE_URL: 'http://localhost:8080/api/hive',
-      hiveTime: 6894
+      hiveTime: 0
     }
   },
   methods: {
@@ -161,6 +161,51 @@ export default {
       this.hasResult = true
 
       const year = this.form.year.getFullYear()
+
+      // 如果只选择了年份，调用 Hive 年份接口
+      if (this.form.year && !this.form.month && !this.form.day && !this.form.quarter) {
+        axios.get(`http://106.15.36.155:8080/api/hive/date/count/year/${year}`)
+          .then(response => {
+            if (response.data && response.data.queryTimeMillis) {
+              this.hiveTime = response.data.queryTimeMillis
+              this.updateChartData()
+            }
+          })
+          .catch(error => {
+            console.error('Hive请求出错:', error)
+            this.$message.error('获取Hive查询时间失败')
+          })
+      }
+      
+      // 如果选择了年份和月份，调用 Hive 年月接口
+      if (this.form.year && this.form.month && !this.form.day && !this.form.quarter) {
+        axios.get(`http://106.15.36.155:8080/api/hive/date/count/year/${year}/month/${this.form.month}`)
+          .then(response => {
+            if (response.data && response.data.queryTimeMillis) {
+              this.hiveTime = response.data.queryTimeMillis
+              this.updateChartData()
+            }
+          })
+          .catch(error => {
+            console.error('Hive年月请求出错:', error)
+            this.$message.error('获取Hive查询时间失败')
+          })
+      }
+
+      // 如果选择了年月日，调用 Hive 年月日接口
+      if (this.form.year && this.form.month && this.form.day && !this.form.quarter) {
+        axios.get(`http://106.15.36.155:8080/api/hive/date/count/year/${year}/month/${this.form.month}/day/${this.form.day}`)
+          .then(response => {
+            if (response.data && response.data.queryTimeMillis) {
+              this.hiveTime = response.data.queryTimeMillis
+              this.updateChartData()
+            }
+          })
+          .catch(error => {
+            console.error('Hive年月日请求出错:', error)
+            this.$message.error('获取Hive查询时间失败')
+          })
+      }
 
       // 如果选择了季度，使用季度查询接口
       if (this.form.quarter !== null) {
@@ -362,19 +407,20 @@ export default {
     updateChartData() {
       const neo4jTimeNum = Number(this.neo4jTime)
       const mysqlTimeNum = Number(this.mysqlTime)
+      const hiveTimeNum = Number(this.hiveTime)
       
       console.log('更新图表数据:', {
         neo4jTime: neo4jTimeNum,
-        hiveTime: this.hiveTime,
-        mysqlTime: mysqlTimeNum
+        mysqlTime: mysqlTimeNum,
+        hiveTime: hiveTimeNum
       })
 
       this.chartData = {
         columns: ['数据库', '查询时间'],
         rows: [
           { '数据库': 'Neo4j', '查询时间': neo4jTimeNum },
-          { '数据库': 'Hive', '查询时间': this.hiveTime },
-          { '数据库': 'MYSQL', '查询时间': mysqlTimeNum }
+          { '数据库': 'MySQL', '查询时间': mysqlTimeNum },
+          { '数据库': 'Hive', '查询时间': hiveTimeNum }
         ]
       }
     }

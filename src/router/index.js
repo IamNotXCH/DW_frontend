@@ -43,7 +43,17 @@ export const constantRoutes = [
     hidden: true
   },
 
-
+  {
+    path: '/',
+    component: Layout,
+    redirect: '/dashboard',
+    children: [{
+      path: 'dashboard',
+      name: 'Dashboard',
+      component: () => import('@/views/dashboard/index'),
+      meta: { title: '数据存储与管理', icon: 'dashboard' }
+    }]
+  },
   
   {
     path: '/queries',
